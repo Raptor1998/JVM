@@ -1,18 +1,3 @@
----
-title: SpringCloudAlibaba
-date: 9/6/2021
-tags: SpringCloudAlibaba
-categories: SpringCloudAlibaba
-keywords: 
-description: SpringCloudAlibaba
-top_img: https://cdn.jsdelivr.net/gh/Raptor1998/imghouse/untidy/20210401142650.jpg
-comments:  是否顯示評論（除非設置false,可以不寫）
-cover: https://cdn.jsdelivr.net/gh/Raptor1998/imghouse/untidy/20210401142650.jpg
-toc:  是否顯示toc （除非特定文章設置，可以不寫）
-toc_number: 是否顯示toc數字 （除非特定文章設置，可以不寫）
-copyright: 是否顯示版權 （除非特定文章設置，可以不寫）
----
-
 # 内存与垃圾回收
 
 ## 类加载子系统
