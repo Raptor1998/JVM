@@ -22,4 +22,15 @@ public class StackTest {
         StackTest stackTest = new StackTest();
         stackTest.methodA();
     }
+
+
+    public void test3() {
+        int a = 1;
+        {
+            int b = 2;
+            b = a + 1;
+        }
+        //变量c使用的是已经销毁的b的solt
+        int c = 3;
+    }
 }
