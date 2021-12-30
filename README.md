@@ -315,17 +315,69 @@ Java方法有两种返回函数的方式，一种是正常的函数返回，使�
   }
   ```
 
+## 本地方法接口
 
+一个Native Methodt是一个Java调用非Java代码的接囗。一个Native Method是这样一个Java方法：该方法的实现由非Java语言实现，比如C。这个特征并非Java所特有，很多其它的编程语言都有这一机制，比如在C++中，你可以用extern "c" 告知c++编译器去调用一个c的函数。
 
+"A native method is a Java method whose implementation is provided by non-java code."（本地方法是一个非Java的方法，它的具体实现是非Java代码的实现）
 
+在定义一个native method时，并不提供实现体（有些像定义一个Java interface），因为其实现体是由非java语言在外面实现的。
 
+本地接口的作用是融合不同的编程语言为Java所用，它的初衷是融合C/C++程序。
 
+## 本地方法栈
 
+Java虚拟机栈于管理Java方法的调用，而**本地方法栈用于管理本地方法的调用**。
 
+本地方法栈，也是线程私有的。
 
+允许被实现成固定或者是可动态扩展的内存大小。（在内存溢出方面是相同的）
 
+- 如果线程请求分配的栈容量超过本地方法栈允许的最大容量，Java虚拟机将会抛出一个stackoverflowError 异常。
+- 如果本地方法栈可以动态扩展，并且在尝试扩展的时候无法申请到足够的内存，或者在创建新的线程时没有足够的内存去创建对应的本地方法栈，那么Java虚拟机将会抛出一个outofMemoryError异常。
 
+本地方法是使用C语言实现的。
 
+它的具体做法是Native Method Stack中登记native方法，在Execution Engine 执行时加载本地方法库。
+
+## 堆
+
+### 堆的核心概念
+
+堆针对一个JVM进程来说是唯一的，也就是一个进程只有一个JVM，但是进程包含多个线程，他们是共享同一堆空间的。
+
+#### 堆内存细分
+
+Java 7及之前堆内存逻辑上分为三部分：新生区+养老区+永久区
+
+- Young Generation Space 新生区 Young/New 又被划分为Eden区和Survivor区
+- Tenure generation space 养老区 Old/Tenure
+- Permanent Space永久区 Perm
+
+Java 8及之后堆内存逻辑上分为三部分：新生区养老区+元空间
+
+- Young Generation Space新生区 Young/New 又被划分为Eden区和Survivor区
+- Tenure generation space 养老区 Old/Tenure
+- Meta Space 元空间 Meta
+
+约定：新生区 -> 新生代 -> 年轻代 、 养老区 -> 老年区 -> 老年代、 永久区 -> 永久代
+
+#### 设置堆内存大小与OOM
+
+Java堆区用于存储Java对象实例，那么堆的大小在JVM启动时就已经设定好了，大家可以通过选项"-Xmx"和"-Xms"来进行设置。
+
+- “-Xms"用于表示堆区的起始内存，等价于-xx:InitialHeapSize
+- “-Xmx"则用于表示堆区的最大内存，等价于-XX:MaxHeapSize
+
+一旦堆区中的内存大小超过“-xmx"所指定的最大内存时，将会抛出outofMemoryError异常。
+
+通常会将-Xms和-Xmx两个参数配置相同的值，其目的是**为了能够在ava垃圾回收机制清理完堆区后不需要重新分隔计算堆区的大小，从而提高性能**。  
+
+**-Xms300m -Xmx300m -XX:+PrintGCDetails**
+
+**设置为300M却不足，是因为幸存区只能有一个用来存储。**  
+
+![image-20211230203337495](./README.assets/image-20211230203337495.png)
 
 
 
@@ -350,6 +402,12 @@ Java方法有两种返回函数的方式，一种是正常的函数返回，使�
 下载对应版本的dll文件，在notepad++插件文件夹创建HexEdit文件夹，将解压的dll文件放入，重启即可。
 
 ![image-20211227170551121](./README.assets/20211227174533.png)
+
+# VisualVM插件GC安装
+
+[VisualVM安装VisualGC插件](https://blog.csdn.net/weixin_45759791/article/details/107332860)
+
+ [Plugins Centers 插件中心](https://visualvm.github.io/pluginscenters.html)
 
 # 推荐笔记
 
