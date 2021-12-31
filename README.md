@@ -391,14 +391,14 @@ Java堆区进一步细分的话，可以划分为年轻代（YoungGen）和老�
 
 其中年轻代又可以划分为Eden空间、Survivor0空间和Survivor1空间（有时也叫做from区、to区）
 
-![image-20200707075847954](E:\codeDemo\interview\README.assets\image-20200707075847954.png)
+![image-20200707075847954](./README.assets/image-20200707075847954.png)
 
  配置新生代与老年代在堆结构的占比。
 
 - 默认-XX:NewRatio=2，表示新生代占1，老年代占2，新生代占整个堆的1/3
 - 可以修改-XX:NewRatio=4，表示新生代占1，老年代占4，新生代占整个堆的1/5
 
-![image-20200707080154039](E:\codeDemo\interview\README.assets\image-20200707080154039.png)
+![image-20200707080154039](./README.assets/image-20200707080154039.png)
 
 > 当发现在整个项目中，生命周期长的对象偏多，那么就可以通过调整 老年代的大小，来进行调优
 
@@ -433,17 +433,17 @@ Java堆区进一步细分的话，可以划分为年轻代（YoungGen）和老�
 
 我们创建的对象，一般都是存放在Eden区的，当我们Eden区满了后，就会触发GC操作，一般被称为 YGC / Minor GC操作
 
-![image-20200707084714886](E:\codeDemo\interview\README.assets\image-20200707084714886.png)
+![image-20200707084714886](./README.assets/image-20200707084714886.png)
 
 当我们进行一次垃圾收集后，红色的将会被回收，而绿色的还会被占用着，存放在S0(Survivor From)区。同时我们给每个对象设置了一个年龄计数器，一次回收后就是1。
 
 同时Eden区继续存放对象，当Eden区再次存满的时候，又会触发一个MinorGC操作，此时GC将会把 Eden和Survivor From中的对象 进行一次收集，把存活的对象放到 Survivor To区，同时让年龄 + 1
 
-![img](E:\codeDemo\interview\README.assets\image-20200707085232646.png)
+![img](./README.assets/image-20200707085232646.png)
 
 我们继续不断的进行对象生成 和 垃圾回收，当Survivor中的对象的年龄达到15的时候，将会触发一次 Promotion晋升的操作，也就是将年轻代中的对象 晋升到 老年代中
 
-![image-20200707085737207](E:\codeDemo\interview\README.assets\image-20200707085737207.png)
+![image-20200707085737207](./README.assets/image-20200707085737207.png)
 
 #### 幸存者区空间不足
 
@@ -453,7 +453,7 @@ Java堆区进一步细分的话，可以划分为年轻代（YoungGen）和老�
 
 #### 特殊情况
 
-![image-20200707091058346](E:\codeDemo\interview\README.assets\image-20200707091058346.png)
+![image-20200707091058346](./README.assets/image-20200707091058346.png)
 
 ### Minor GC，MajorGC、Full GC
 
@@ -473,6 +473,64 @@ Java堆区进一步细分的话，可以划分为年轻代（YoungGen）和老�
   - 目前，只有G1 GC会有这种行为
 
 整堆收集（FullGC）：收集整个java堆和方法区的垃圾收集。
+
+#### Minor GC
+
+当年轻代空间不足时，就会触发MinorGC，这里的年轻代满指的是Eden代满，Survivor满不会引发GC。（每次Minor GC会清理年轻代的内存。）
+
+因为Java对象大多都具备 **朝生夕灭** 的特性，所以Minor GC非常频繁，一般回收速度也比较快。这一定义既清晰又易于理解。
+
+Minor GC会引发STW，暂停其它用户的线程，等垃圾回收结束，用户线程才恢复运行
+
+#### Major GC
+
+指发生在老年代的GC，对象从老年代消失时，我们说 “Major Gc” 或 “Full GC” 发生了
+
+出现了MajorGc，经常会伴随至少一次的Minor GC（但非绝对的，在Paralle1 Scavenge收集器的收集策略里就有直接进行MajorGC的策略选择过程）
+
+- 也就是在老年代空间不足时，会先尝试触发MinorGc。如果之后空间还不足，则触发Major GC
+
+Major GC的速度一般会比MinorGc慢1e倍以上，STW的时间更长，如果Major GC后，内存还不足，就报OOM了
+
+#### Full GC
+
+触发FullGC执行的情况有如下五种：
+
+- 调用System.gc（）时，系统建议执行FullGC，但是不必然执行
+- 老年代空间不足
+- 方法区空间不足
+- 通过Minor GC后进入老年代的平均大小大于老年代的可用内存
+- 由Eden区、survivor spacee（From Space）区向survivor spacel（To Space）区复制时，对象大小大于To Space可用内存，则把该对象转存到老年代，且老年代的可用内存小于该对象大小
+
+说明：Full GC 是开发或调优中尽量要避免的。这样暂时时间会短一些
+
+### 内存分配策略
+
+如果对象在Eden出生并经过第一次Minor GC后仍然存活，并且能被Survivor容纳的话，将被移动到survivor空间中，并将对象年龄设为1。对象在survivor区中每熬过一次MinorGC，年龄就增加1岁，当它的年龄增加到一定程度（默认为15岁，其实每个JVM、每个GC都有所不同）时，就会被晋升到老年代
+
+对象晋升老年代的年龄阀值，可以通过选项-xx:MaxTenuringThreshold来设置
+
+针对不同年龄段的对象分配原则如下所示：
+
+- 优先分配到Eden
+  - 开发中比较长的字符串或者数组，会直接存在老年代，但是因为新创建的对象 都是 朝生夕死的，所以这个大对象可能也很快被回收，但是因为老年代触发Major GC的次数比 Minor GC要更少，因此可能回收起来就会比较慢
+- 大对象直接分配到老年代
+  - 尽量避免程序中出现过多的大对象
+- 长期存活的对象分配到老年代
+- 动态对象年龄判断
+  - 如果survivor区中相同年龄的所有对象大小的总和大于Survivor空间的一半，年龄大于或等于该年龄的对象可以直接进入老年代，无须等到MaxTenuringThreshold 中要求的年龄。
+
+空间分配担保： -Xx:HandlePromotionFailure
+
+- 也就是经过Minor GC后，所有的对象都存活，因为Survivor比较小，所以就需要将Survivor无法容纳的对象，存放到老年代中。
+
+
+
+
+
+
+
+
 
 # 相关工具
 
