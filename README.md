@@ -629,7 +629,69 @@ JIT编译器在编译期间根据逃逸分析的结果，发现如果一个对�
 
 ## 方法区
 
+方法区主要存放的是 Class，而堆中主要存放的是 实例化的对象
 
+- 方法区（Method Area）与Java堆一样，是各个线程共享的内存区域。
+- 方法区在JVM启动的时候被创建，并且它的实际的物理内存空间中和Java堆区一样都可以是不连续的。
+- 方法区的大小，跟堆空间一样，可以选择固定大小或者可扩展。
+- 方法区的大小决定了系统可以保存多少个类，如果系统定义了太多的类，导致方法区溢出，虚拟机同样会抛出内存溢出错误：ava.lang.OutofMemoryError：PermGen space 或者java.lang.OutOfMemoryError:Metaspace
+  - 加载大量的第三方的jar包
+  - Tomcat部署的工程过多（30~50个）
+  - 大量动态的生成反射类
+- 关闭JVM就会释放这个区域的内存。
+
+###  JDK8以后
+
+元数据区大小可以使用参数 -XX:MetaspaceSize 和 -XX:MaxMetaspaceSize指定
+
+默认值依赖于平台。windows下，-XX:MetaspaceSize是21M，-XX:MaxMetaspaceSize的值是-1，即没有限制。
+
+与永久代不同，如果不指定大小，默认情况下，虚拟机会耗尽所有的可用系统内存。如果元数据区发生溢出，虚拟机一样会抛出异常OutOfMemoryError:Metaspace
+
+-XX:MetaspaceSize：设置初始的元空间大小。对于一个64位的服务器端JVM来说，其默认的-xx:MetaspaceSize值为21MB。这就是初始的高水位线，一旦触及这个水位线，Ful1GC将会被触发并卸载没用的类（即这些类对应的类加载器不再存活）然后这个高水位线将会重置。新的高水位线的值取决于GC后释放了多少元空间。如果释放的空间不足，那么在不超过MaxMetaspaceSize时，适当提高该值。如果释放空间过多，则适当降低该值。
+
+如果初始化的高水位线设置过低，上述高水位线调整情况会发生很多次。通过垃圾回收器的日志可以观察到Ful1GC多次调用。为了避免频繁地GC，建议将-XX:MetaspaceSize设置为一个相对较高的值。
+
+### 如何解决方法区的OOM
+
+- 要解决ooM异常或heap space的异常，一般的手段是首先通过内存映像分析工具（如Ec1ipse Memory Analyzer）对dump出来的堆转储快照进行分析，重点是确认内存中的对象是否是必要的，也就是要先分清楚到底是出现了内存泄漏（Memory Leak）还是内存溢出（Memory Overflow）
+  - 内存泄漏就是 有大量的引用指向某些对象，但是这些对象以后不会使用了，但是因为它们还和GC ROOT有关联，所以导致以后这些对象也不会被回收，这就是内存泄漏的问题
+- 如果是内存泄漏，可进一步通过工具查看泄漏对象到GC Roots的引用链。于是就能找到泄漏对象是通过怎样的路径与GCRoots相关联并导致垃圾收集器无法自动回收它们的。掌握了泄漏对象的类型信息，以及GCRoots引用链的信息，就可以比较准确地定位出泄漏代码的位置。
+- 如果不存在内存泄漏，换句话说就是内存中的对象确实都还必须存活着，那就应当检查虚拟机的堆参数（-Xmx与-Xms），与机器物理内存对比看是否还可以调大，从代码上检查是否存在某些对象生命周期过长、持有状态时间过长的情况，尝试减少程序运行期的内存消耗。
+
+### non-final的类变量
+
+静态变量和类关联在一起，随着类的加载而加载，他们成为类数据在逻辑上的一部分
+
+类变量被类的所有实例共享，即使没有类实例时，你也可以访问它
+
+```
+/**
+ * non-final的类变量
+ *
+ * @author: 陌溪
+ * @create: 2020-07-08-16:54
+ */
+public class MethodAreaTest {
+    public static void main(String[] args) {
+        Order order = new Order();
+        order.hello();
+        System.out.println(order.count);
+    }
+}
+class Order {
+    public static int count = 1;
+    public static final int number = 2;
+    public static void hello() {
+        System.out.println("hello!");
+    }
+}
+```
+
+- 方法区，内部包含了运行时常量池
+- 字节码文件，内部包含了常量池
+- 要弄清楚方法区，需要理解清楚C1assFile，因为加载类的信息都在方法区。
+- 要弄清楚方法区的运行时常量池，需要理解清楚classFile中的常量池。
 
 # 相关工具
 

@@ -1,4 +1,4 @@
-package com.raptor.jvm.chatper8;
+package com.raptor.jvm.chapter8;
 
 /**
  * @author raptor
