@@ -702,15 +702,15 @@ class Order {
 
 JDK6的时候
 
-![image-20200708211541300](E:\codeDemo\interview\README.assets\image-20200708211541300.png)
+![image-20200708211541300](./README.assets/image-20200708211541300.png)
 
 JDK7的时候
 
-![image-20200708211609911](E:\codeDemo\interview\README.assets\image-20200708211609911.png)
+![image-20200708211609911](./README.assets/image-20200708211609911.png)
 
 JDK8的时候，元空间大小只受物理内存影响
 
-![image-20200708211637952](E:\codeDemo\interview\README.assets\image-20200708211637952.png)
+![image-20200708211637952](./README.assets/image-20200708211637952.png)
 
 #### 为什么永久代要被元空间替代？
 
@@ -761,9 +761,252 @@ HotSpot虚拟机对常量池的回收策略是很明确的，只要常量池中�
 
 ## 对象实例化内存布局与访问定位
 
+### 创建对象的步骤
+
+#### 判断对象对应的类是否加载、链接、初始化
+
+虚拟机遇到一条new指令，首先去检查这个指令的参数能否在Metaspace的常量池中定位到一个类的符号引用，并且检查这个符号引用代表的类是否已经被加载，解析和初始化。（即判断类元信息是否存在）。如果没有，那么在双亲委派模式下，使用当前类加载器以ClassLoader + 包名 + 类名为key进行查找对应的 .class文件，如果没有找到文件，则抛出ClassNotFoundException异常，如果找到，则进行类加载，并生成对应的Class对象。
+
+#### 为对象分配内存
+
+首先计算对象占用空间的大小，接着在堆中划分一块内存给新对象。如果实例成员变量是引用变量，仅分配引用变量空间即可，即4个字节大小
+
+- 如果内存规整：指针碰撞
+- 如果内存不规整
+  - 虚拟表需要维护一个列表
+  - 空闲列表分配
+
+如果内存是规整的，那么虚拟机将采用的是指针碰撞法（Bump The Point）来为对象分配内存。
+
+意思是所有用过的内存在一边，空闲的内存放另外一边，中间放着一个指针作为分界点的指示器，分配内存就仅仅是把指针指向空闲那边挪动一段与对象大小相等的距离罢了。如果垃圾收集器选择的是Serial ，ParNew这种基于压缩算法的，虚拟机采用这种分配方式。一般使用带Compact（整理）过程的收集器时，使用指针碰撞。
+
+如果内存不是规整的，已使用的内存和未使用的内存相互交错，那么虚拟机将采用的是空闲列表来为对象分配内存。意思是虚拟机维护了一个列表，记录上那些内存块是可用的，再分配的时候从列表中找到一块足够大的空间划分给对象实例，并更新列表上的内容。这种分配方式成为了 “空闲列表（Free List）”
+
+选择哪种分配方式由Java堆是否规整所决定，而Java堆是否规整又由所采用的垃圾收集器是否带有压缩整理功能决定。
+
+#### 处理并发问题
+
+- 采用CAS配上失败重试保证更新的原子性
+- 每个线程预先分配TLAB - 通过设置 -XX:+UseTLAB参数来设置（区域加锁机制）
+  - 在Eden区给每个线程分配一块区域
+
+#### 初始化分配到的内存
+
+给对象属性赋值的操作
+
+- 属性的默认初始化
+- 显示初始化
+- 代码块中的初始化
+- 构造器初始化
+- 所有属性设置默认值，保证对象实例字段在不赋值可以直接使用
+
+#### 设置对象的对象头
+
+将对象的所属类（即类的元数据信息）、对象的HashCode和对象的GC信息、锁信息等数据存储在对象的对象头中。这个过程的具体设置方式取决于JVM实现。
+
+#### 执行init方法进行初始化
+
+在Java程序的视角看来，初始化才正式开始。初始化成员变量，执行实例化代码块，调用类的构造方法，并把堆内对象的首地址赋值给引用变量
+
+因此一般来说（由字节码中跟随invokespecial指令所决定），new指令之后会接着就是执行方法，把对象按照程序员的意愿进行初始化，这样一个真正可用的对象才算完成创建出来。
+
+## String
+
+### String的基本特性
+
+- String：字符串，使用一对 ”” 引起来表示
+  - String s1 = "mogublog" ; // 字面量的定义方式
+  - String s2 = new String("moxi");
+- string声明为final的，不可被继承
+- String实现了Serializable接口：表示字符串是支持序列化的。实现了Comparable接口：表示string可以比较大小
+- string在jdk8及以前内部定义了final char[] value用于存储字符串数据。JDK9时改为byte[]
+
+####  JDK9改变了结构
+
+String类的当前实现将字符存储在char数组中，每个字符使用两个字节(16位)。从许多不同的应用程序收集的数据表明，字符串是堆使用的主要组成部分，而且，大多数字符串对象只包含拉丁字符。这些字符只需要一个字节的存储空间，因此这些字符串对象的内部char数组中有一半的空间将不会使用。
+
+我们建议改变字符串的内部表示clasš从utf - 16字符数组到字节数组+一个encoding-flag字段。新的String类将根据字符串的内容存储编码为ISO-8859-1/Latin-1(每个字符一个字节)或UTF-16(每个字符两个字节)的字符。编码标志将指示使用哪种编码。
+
+结论：String再也不用char[] 来存储了，改成了byte [] 加上编码标记，节约了一些空间
+
+```
+// 之前
+private final char value[];
+// 之后
+private final byte[] value
+```
+
+同时基于String的数据结构，例如StringBuffer和StringBuilder也同样做了修改
+
+#### String的不可变性
+
+String：代表不可变的字符序列。简称：不可变性。
+
+> 当对字符串重新赋值时，需要重写指定内存区域赋值，不能使用原有的value进行赋值。 当对现有的字符串进行连接操作时，也需要重新指定内存区域赋值，不能使用原有的value进行赋值。 当调用string的replace（）方法修改指定字符或字符串时，也需要重新指定内存区域赋值，不能使用原有的value进行赋值。 通过字面量的方式（区别于new）给一个字符串赋值，此时的字符串值声明在字符串常量池中。
+
+```java
+public class StringTable {
+
+    public static void test1() {
+        // 字面量定义的方式，“abc”存储在字符串常量池中
+        String s1 = "abc";
+        String s2 = "abc";
+        System.out.println(s1 == s2);
+        s1 = "hello";
+        System.out.println(s1 == s2);
+        System.out.println(s1);
+        System.out.println(s2);
+        System.out.println("----------------");
+    }
+
+    public static void test2() {
+        String s1 = "abc";
+        String s2 = "abc";
+        // 只要进行了修改，就会重新创建一个对象，这就是不可变性
+        s2 += "def";
+        System.out.println(s1);
+        System.out.println(s2);
+        System.out.println("----------------");
+    }
+
+    public static void test3() {
+        String s1 = "abc";
+        String s2 = s1.replace('a', 'm');
+        System.out.println(s1);
+        System.out.println(s2);
+    }
+
+    public static void main(String[] args) {
+        test1();
+        test2();
+        test3();
+        //true
+        //false
+        //hello
+        //abc
+        //----------------
+        //abc
+        //abcdef
+        //----------------
+        //abc
+        //mbc
+    }
+}
+```
 
 
 
+```java
+public class StringExer {
+    String str = new String("good");
+    char[] ch = {'t', 'e', 's', 't'};
+
+    public void change(String str, char ch[]) {
+        str = "test ok";
+        ch[0] = 'b';
+    }
+
+    public static void main(String[] args) {
+        StringExer ex = new StringExer();
+        ex.change(ex.str, ex.ch);
+        System.out.println(ex.str);   //good
+        System.out.println(ex.ch);    //best
+    }
+}
+```
+
+### String的内存分配
+
+Java 6及以前，字符串常量池存放在永久代
+
+Java 7中 oracle的工程师对字符串池的逻辑做了很大的改变，即将字符串常量池的位置调整到Java堆内
+
+> 所有的字符串都保存在堆（Heap）中，和其他普通对象一样，这样可以让你在进行调优应用时仅需要调整堆大小就可以了。
+>
+> 字符串常量池概念原本使用得比较多，但是这个改动使得我们有足够的理由让我们重新考虑在Java 7中使用string.intern（）。
+
+Java8元空间，字符串常量在堆
+
+![image-20200711093546398](./README.assets/image-20200711093546398.png)
+
+![image-20200711093558709](./README.assets/image-20200711093558709.png)
+
+#### 为什么StringTable从永久代调整到堆中
+
+在JDK 7中，interned字符串不再在Java堆的永久生成中分配，而是在Java堆的主要部分(称为年轻代和年老代)中分配，与应用程序创建的其他对象一起分配。此更改将导致驻留在主Java堆中的数据更多，驻留在永久生成中的数据更少，因此可能需要调整堆大小。由于这一变化，大多数应用程序在堆使用方面只会看到相对较小的差异，但加载许多类或大量使用字符串的较大应用程序会出现这种差异。intern()方法会看到更显著的差异。
+
+- 永久代的默认比较小
+- 永久代垃圾回收频率低
+
+### 拼接操作
+
+```java
+public static void main(String[] args) {
+    String s1 = "a" + "b" + "c";  // 得到 abc的常量池
+    String s2 = "abc"; // abc存放在常量池，直接将常量池的地址返回
+    /**
+     * 最终java编译成.class，再执行.class
+     */
+    System.out.println(s1 == s2); // true，因为存放在字符串常量池
+    System.out.println(s1.equals(s2)); // true
+}
+```
+
+
+
+### 拼接操作和append性能对比
+
+```
+    public static void method1(int highLevel) {
+        String src = "";
+        for (int i = 0; i < highLevel; i++) {
+            src += "a"; // 每次循环都会创建一个StringBuilder对象
+        }
+    }
+
+    public static void method2(int highLevel) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < highLevel; i++) {
+            sb.append("a");
+        }
+    }
+```
+
+方法1耗费的时间：4005ms，方法2消耗时间：7ms
+
+结论：
+
+- 通过StringBuilder的append()方式添加字符串的效率，要远远高于String的字符串拼接方法
+
+好处
+
+- StringBuilder的append的方式，自始至终只创建一个StringBuilder的对象
+- 对于字符串拼接的方式，还需要创建很多StringBuilder对象和 调用toString时候创建的String对象
+- 内存中由于创建了较多的StringBuilder和String对象，内存占用过大，如果进行GC那么将会耗费更多的时间
+
+改进的空间
+
+- 我们使用的是StringBuilder的空参构造器，默认的字符串容量是16，然后将原来的字符串拷贝到新的字符串中， 我们也可以默认初始化更大的长度，减少扩容的次数
+- 因此在实际开发中，我们能够确定，前前后后需要添加的字符串不高于某个限定值，那么建议使用构造器创建一个阈值的长度
+
+### intern()
+
+#### new String("as")会创建几个对象
+
+- 一个对象是：new关键字在堆空间中创建
+- 另一个对象：字符串常量池中的对象
+
+####  new String("a") + new String("b") 会创建几个对象
+
+- 对象1：new StringBuilder()
+- 对象2：new String("a")
+- 对象3：常量池的 a
+- 对象4：new String("b")
+- 对象5：常量池的 b
+- 对象6：toString中会创建一个 new String("ab")
+  - 调用toString方法，不会在常量池中生成ab
+
+[Java 定义字符串时：String 和 new String() 的区别](https://blog.csdn.net/weixin_44259720/article/details/88237822)****
 
 
 

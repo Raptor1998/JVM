@@ -8,7 +8,9 @@ package com.raptor.jvm.chapter9;
 public class StringTest {
     public static void main(String[] args) {
         String s1 = "asd";
-        s1 += "as";
-        System.out.println(s1);
+        String s2 = new String("asd");
+        s1+="asd";
+        s2+="asd";
+        System.out.println(s1 == s2);
     }
 }
