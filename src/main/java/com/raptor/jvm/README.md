@@ -1,4 +1,4 @@
-# 内存与垃圾回收
+# 内存篇
 
 ## 类加载子系统
 
@@ -1008,7 +1008,15 @@ public static void main(String[] args) {
 
 [Java 定义字符串时：String 和 new String() 的区别](https://blog.csdn.net/weixin_44259720/article/details/88237822)
 
-[深入解析String#intern](https://tech.meituan.com/2014/03/06/in-depth-understanding-string-intern.html)
+### [美团：深入解析String#intern](https://tech.meituan.com/2014/03/06/in-depth-understanding-string-intern.html)
+
+### intern题目
+
+![image-20220107101214463](./README.assets/image-20220107101214463.png)
+
+![image-20220107101237047](./README.assets/image-20220107101237047.png)
+
+![image-20220107101245959](./README.assets/image-20220107101245959.png)
 
 # 相关工具
 
@@ -1026,7 +1034,7 @@ public static void main(String[] args) {
 
 ![image-20211227170551121](./README.assets/20211227174533.png)
 
-# VisualVM插件GC安装
+## VisualVM插件GC安装
 
 [VisualVM安装VisualGC插件](https://blog.csdn.net/weixin_45759791/article/details/107332860)
 

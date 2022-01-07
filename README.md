@@ -1,8 +1,9 @@
 # 目录
 
-+ **/JVM**   尚硅谷JVM课程相关资料
-+ **/src/main/java/jvm**  内存与垃圾回收篇章
-+ **/src/main/java/first**  面试题第一季部分
++ **JVM**   尚硅谷JVM课程相关资料
++ **src/main/java/jvm**  内存篇
++ **src/main/java/gc**  垃圾回收篇
++ **src/main/java/first**  面试题第一季部分
 
 # 相关文章
 
