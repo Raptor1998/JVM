@@ -16,8 +16,8 @@ public class Test {
          *      类变量显示赋值代码和静态代码块代码从上到下顺序执行
          *      <clinit>方法只执行一次
          */
-        Son son1 = new Son();
-        System.out.println();
-        Son son2 = new Son();
+//        Son son1 = new Son();
+//        System.out.println();
+//        Son son2 = new Son();
     }
 }
