@@ -665,13 +665,7 @@ JIT编译器在编译期间根据逃逸分析的结果，发现如果一个对�
 
 类变量被类的所有实例共享，即使没有类实例时，你也可以访问它
 
-```
-/**
- * non-final的类变量
- *
- * @author: 陌溪
- * @create: 2020-07-08-16:54
- */
+```java
 public class MethodAreaTest {
     public static void main(String[] args) {
         Order order = new Order();
@@ -956,7 +950,7 @@ public static void main(String[] args) {
 
 ### 拼接操作和append性能对比
 
-```
+```java
     public static void method1(int highLevel) {
         String src = "";
         for (int i = 0; i < highLevel; i++) {
@@ -1043,3 +1037,4 @@ public static void main(String[] args) {
 # 推荐笔记
 
  **[陌溪](https://gitee.com/moxi159753) / [LearningNotes](https://gitee.com/moxi159753/LearningNotes)**
+
