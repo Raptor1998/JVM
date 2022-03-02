@@ -35,6 +35,7 @@ public class ThreadLocalTest {
                     }
 
                     System.out.println("线程名：" + Thread.currentThread().getName() + " ----- " + threadLocalTest.getContent());
+                    System.out.println("线程名：" + Thread.currentThread().getName() + " ----- " + threadLocalTest.getContent());
 
                 }
             }, String.valueOf(i)).start();
